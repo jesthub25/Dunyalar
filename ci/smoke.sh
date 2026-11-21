@@ -22,6 +22,10 @@ clean() {
 fail() {
   echo "::error::[Paper $VER] $*"
   clean
+  # Günlük sonunu tek bir annotation olarak da göster (API üzerinden okunabilir)
+  if [ -f "$WORK/console.clean" ]; then
+    echo "::error title=Gunluk $VER::$(tail -n 45 "$WORK/console.clean" | cut -c1-220 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+  fi
   echo "----- günlük (son 150 satır) -----"
   tail -n 150 "$WORK/console.clean" 2>/dev/null
   echo "----- ham konsol (son 40 satır) -----"
@@ -110,13 +114,21 @@ expect() {   # expect "<komut>" "<beklenen çıktı>" [saniye]
   done
   fail "Beklenen çıktı gelmedi: '$2' (komut: $1)"
 }
-expect_block() {   # vanilla /execute ile blok doğrulama
-  local p f i
-  p="$(count "Test passed")"; f="$(count "Test failed")"
+load_chunk() {   # load_chunk <dünya> <x> <z> : chunk'ı geçici olarak yükle (/execute yüklü chunk ister)
+  expect "execute in minecraft:$1 run forceload add $2 $3" "force load" 30
+  sleep 2
+}
+unload_chunk() {
+  expect "execute in minecraft:$1 run forceload remove $2 $3" "force load" 30
+}
+expect_block() {   # vanilla /execute ile blok/varlık doğrulama
+  local p f n i
+  p="$(count "Test passed")"; f="$(count "Test failed")"; n="$(count "not loaded")"
   send "$1"
   for ((i = 0; i < 30; i++)); do
     [ "$(count "Test passed")" -gt "$p" ] && return 0
     [ "$(count "Test failed")" -gt "$f" ] && fail "Blok testi başarısız: $1"
+    [ "$(count "not loaded")" -gt "$n" ] && fail "Chunk yüklü değil: $1"
     sleep 1
   done
   fail "Blok testi yanıt vermedi: $1"
@@ -167,13 +179,26 @@ expect "dunya isinlan TestVoid" "sadece oyuncular"
 expect "dunya liste" "TestNormal"
 
 # Arazi doğrulama (vanilla /execute)
+load_chunk testvoid 0 0
 expect_block "execute in minecraft:testvoid if block 0 64 0 minecraft:bedrock"
+expect_block "execute in minecraft:testvoid if block 1 64 -1 minecraft:bedrock"
 expect_block "execute in minecraft:testvoid if block 10 30 10 minecraft:air"
+expect_block "execute in minecraft:testvoid if block 10 0 10 minecraft:air"
+unload_chunk testvoid 0 0
+load_chunk testflat 0 0
 expect_block "execute in minecraft:testflat if block 5 0 5 minecraft:bedrock"
+expect_block "execute in minecraft:testflat if block 5 1 5 minecraft:netherrack"
 expect_block "execute in minecraft:testflat if block 5 4 5 minecraft:netherrack"
 expect_block "execute in minecraft:testflat if block 5 5 5 minecraft:air"
+unload_chunk testflat 0 0
+load_chunk testend 0 0
 expect_block "execute in minecraft:testend if block 5 4 5 minecraft:end_stone"
+expect_block "execute in minecraft:testend if block 5 5 5 minecraft:air"
+unload_chunk testend 0 0
+load_chunk testend 120 120
 expect_block "execute in minecraft:testend if block 120 0 120 minecraft:end_portal"
+expect_block "execute in minecraft:testend if block 120 1 120 minecraft:bedrock"
+unload_chunk testend 120 120
 
 expect "dunya reload" "Ayarlar yeniden yüklendi"
 expect "dunya sil TestFlat" "Dünya silindi: TestFlat" 90
@@ -188,8 +213,11 @@ if [ -n "$WITH_BOT" ]; then
     [ "$BOT_EXIT" -eq 0 ] && grep -q "BOT_OK" bot.out || fail "Oyuncu (bot) testi başarısız"
     # Oyuncu End'e girdi: ejderha savaşı kapalı olduğu için ejderha ve çıkış portalı olmamalı
     sleep 3
+    load_chunk testend 0 0
     expect_block "execute in minecraft:testend unless entity @e[type=minecraft:ender_dragon]"
     expect_block "execute in minecraft:testend if block 0 4 0 minecraft:end_stone"
+    expect_block "execute in minecraft:testend if block 0 5 0 minecraft:air"
+    unload_chunk testend 0 0
   else
     echo "::notice::mineflayer $VER sürümünü desteklemiyor, oyuncu testi atlandı."
     WITH_BOT=""
@@ -214,7 +242,9 @@ for w in TestVoid TestEnd TestRect TestNormal; do
   grep -qF "Dünya yüklendi: $w" console.clean || fail "Yeniden başlatmada yüklenmedi: $w"
 done
 expect "dunya liste" "TestRect"
+load_chunk testvoid 0 0
 expect_block "execute in minecraft:testvoid if block 0 64 0 minecraft:bedrock"
+unload_chunk testvoid 0 0
 expect "dunya sil TestRect" "Dünya silindi: TestRect" 90
 stop_server
 [ ! -e TestRect ] || fail "Silinen dünyanın klasörü duruyor: TestRect"
