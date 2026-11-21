@@ -6,6 +6,7 @@ set -uo pipefail
 VER="$1"
 PLUGIN="$(readlink -f "$2")"
 WITH_BOT="${3:-}"
+if [ -n "${SERVER_JAR:-}" ]; then SERVER_JAR="$(readlink -f "$SERVER_JAR")"; fi
 CI_DIR="$(cd "$(dirname "$0")" && pwd)"
 UA="Dunyalar-CI/1.0 (+https://github.com/jesthub25/Dunyalar)"
 PORT=25599
