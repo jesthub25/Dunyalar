@@ -23,6 +23,9 @@ fail() {
   echo "::error::[Paper $VER] $*"
   clean
   # Günlük sonunu tek bir annotation olarak da göster (API üzerinden okunabilir)
+  if [ -f "$WORK/bot.out" ]; then
+    echo "::error title=Bot $VER::$(grep -v '^CHAT:' "$WORK/bot.out" | tail -n 25 | cut -c1-300 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+  fi
   if [ -f "$WORK/console.clean" ]; then
     echo "::error title=Gunluk $VER::$(tail -n 45 "$WORK/console.clean" | cut -c1-220 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
   fi
@@ -250,7 +253,9 @@ stop_server
 [ ! -e TestRect ] || fail "Silinen dünyanın klasörü duruyor: TestRect"
 
 # ================================================================ hata taraması
-if grep -nE "at com\.dunyalar\.|Could not pass event .*Dunyalar|Error occurred while (enabling|disabling) Dunyalar|(WARN|ERROR|SEVERE)\]?:? \[Dunyalar\]" all.log; then
+SCAN='at com\.dunyalar\.|Could not pass event .*Dunyalar|Error occurred while (enabling|disabling) Dunyalar|(WARN|ERROR|SEVERE)\]?:? \[Dunyalar\]'
+if grep -nE "$SCAN" all.log; then
+  echo "::error title=Hata satirlari $VER::$(grep -nE -B3 -A12 "$SCAN" all.log | head -n 60 | cut -c1-240 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
   echo "----- tam günlük -----"
   cat all.log
   echo "::error::[Paper $VER] Günlükte eklentiye ait uyarı/hata bulundu (yukarıda)."
