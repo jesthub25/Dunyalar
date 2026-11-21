@@ -67,7 +67,11 @@ async function cmd(command, expect) {
   const idx = messages.length;
   console.log('>>', command);
   bot.chat(command);
-  await until(() => messages.slice(idx).some((m) => m.includes(expect)), 15000, `"${expect}" (${command})`);
+  try {
+    await until(() => messages.slice(idx).some((m) => m.includes(expect)), 15000, `"${expect}" (${command})`);
+  } catch (e) {
+    throw new Error(e.message + ' | son mesajlar: ' + JSON.stringify(messages.slice(-6)) + ' | konum: ' + pos());
+  }
 }
 
 async function tp(command, expect) {

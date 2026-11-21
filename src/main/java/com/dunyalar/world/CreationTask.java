@@ -13,6 +13,7 @@ import org.bukkit.scheduler.BukkitTask;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
@@ -37,6 +38,8 @@ final class CreationTask implements Runnable {
     private final AtomicInteger done = new AtomicInteger();
     private final AtomicInteger inflight = new AtomicInteger();
     private final AtomicInteger failed = new AtomicInteger();
+    /** Asenkron üretimi başarısız olan chunk'lar: senkron olarak yeniden denenir. */
+    private final ConcurrentLinkedQueue<Integer> retry = new ConcurrentLinkedQueue<Integer>();
 
     private World world;
     private BukkitTask timer;
@@ -170,6 +173,11 @@ final class CreationTask implements Runnable {
             return;
         }
         int total = chunkX.length;
+        long deadline = System.nanoTime() + s().tickBudgetMs() * 1_000_000L;
+        Integer again;
+        while (System.nanoTime() < deadline && (again = retry.poll()) != null) {
+            loadSync(again);
+        }
         if (asyncMode) {
             int limit = s().parallelChunks();
             while (inflight.get() < limit && next < total) {
@@ -185,20 +193,17 @@ final class CreationTask implements Runnable {
                     @Override
                     public void accept(Object chunk, Throwable error) {
                         if (error != null) {
-                            failed.incrementAndGet();
+                            retry.add(idx); // senkron yeniden denenecek
+                        } else {
+                            done.incrementAndGet();
                         }
                         inflight.decrementAndGet();
-                        done.incrementAndGet();
                     }
                 });
             }
         } else {
-            long deadline = System.nanoTime() + s().tickBudgetMs() * 1_000_000L;
-            while (next < total) {
+            while (next < total && System.nanoTime() < deadline) {
                 loadSync(next++);
-                if (System.nanoTime() >= deadline) {
-                    break;
-                }
             }
         }
 
@@ -207,7 +212,7 @@ final class CreationTask implements Runnable {
             lastReport = now;
             report(now);
         }
-        if (done.get() >= total && inflight.get() <= 0) {
+        if (done.get() >= total && inflight.get() <= 0 && retry.isEmpty()) {
             finish();
         }
     }
@@ -251,7 +256,7 @@ final class CreationTask implements Runnable {
         send(s().msg("olusturma-tamamlandi", "dunya", data.name(), "sure", Text.oneDecimal(secs),
                 "alan", data.areaText(), "tema", data.theme().key(), "tip", data.kind().key()));
         if (failed.get() > 0) {
-            plugin.getLogger().warning(data.name() + ": " + failed.get() + " chunk ön yüklenemedi (oyuncu girince üretilecek).");
+            plugin.getLogger().warning(data.name() + ": " + failed.get() + " chunk ön üretilemedi; oyuncu yaklaştığında normal şekilde üretilecek.");
         }
         plugin.getLogger().info("Dünya hazır: " + data.name() + " (" + Text.oneDecimal(secs) + " sn)");
         if (playerId != null) {
