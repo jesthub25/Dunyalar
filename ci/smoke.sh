@@ -20,7 +20,7 @@ clean() {
   return 0
 }
 fail() {
-  echo "::error::[Paper $VER] $*"
+  echo "::error::[${LABEL:-Paper} $VER] $*"
   clean
   # Günlük sonunu tek bir annotation olarak da göster (API üzerinden okunabilir)
   if [ -f "$WORK/bot.out" ]; then
@@ -54,15 +54,21 @@ mkdir -p "$WORK/plugins"
 cd "$WORK" || exit 1
 cp "$PLUGIN" plugins/
 
-# ---------------------------------------------------------------- Paper indir
-URL="$(curl -fsSL -A "$UA" "https://fill.papermc.io/v3/projects/paper/versions/$VER/builds/latest" 2>/dev/null \
-  | jq -r '.downloads["server:default"].url // empty')"
-if [ -z "$URL" ]; then
-  B="$(curl -fsSL -A "$UA" "https://api.papermc.io/v2/projects/paper/versions/$VER/builds" | jq -r '.builds[-1].build')"
-  URL="https://api.papermc.io/v2/projects/paper/versions/$VER/builds/$B/downloads/paper-$VER-$B.jar"
+# ---------------------------------------------------------------- sunucu jar'ı
+if [ -n "${SERVER_JAR:-}" ]; then
+  # Hazır jar (ör. BuildTools ile derlenmiş Spigot)
+  cp "$SERVER_JAR" paper.jar || fail "Sunucu jar'ı bulunamadı: $SERVER_JAR"
+  echo "Sunucu jar: $SERVER_JAR"
+else
+  URL="$(curl -fsSL -A "$UA" "https://fill.papermc.io/v3/projects/paper/versions/$VER/builds/latest" 2>/dev/null \
+    | jq -r '.downloads["server:default"].url // empty')"
+  if [ -z "$URL" ]; then
+    B="$(curl -fsSL -A "$UA" "https://api.papermc.io/v2/projects/paper/versions/$VER/builds" | jq -r '.builds[-1].build')"
+    URL="https://api.papermc.io/v2/projects/paper/versions/$VER/builds/$B/downloads/paper-$VER-$B.jar"
+  fi
+  echo "Paper: $URL"
+  curl -fsSL -A "$UA" -o paper.jar "$URL" || fail "Paper indirilemedi"
 fi
-echo "Paper: $URL"
-curl -fsSL -A "$UA" -o paper.jar "$URL" || fail "Paper indirilemedi"
 
 # ---------------------------------------------------------------- sunucu ayarları
 echo "eula=true" > eula.txt
@@ -88,6 +94,11 @@ EOF
 mkdir -p plugins/Dunyalar
 sed 's/^  zorluk: NORMAL/  zorluk: PEACEFUL/' "$CI_DIR/../src/main/resources/config.yml" > plugins/Dunyalar/config.yml
 grep -q "zorluk: PEACEFUL" plugins/Dunyalar/config.yml || fail "Test config'i hazırlanamadı"
+if [ "${PREGEN_ASYNC:-true}" = "false" ]; then
+  sed -i 's/^  asenkron: true/  asenkron: false/' plugins/Dunyalar/config.yml
+  grep -q "asenkron: false" plugins/Dunyalar/config.yml || fail "asenkron ayarı yazılamadı"
+  echo "Ön yükleme modu: senkron (TPS bütçeli)"
+fi
 python3 - > ops.json <<'PY'
 import hashlib, json, uuid
 name = "DunyaBot"
@@ -267,4 +278,4 @@ if grep -nE "$SCAN" all.log; then
   exit 1
 fi
 
-echo "OK: Paper $VER uçtan uca test başarılı."
+echo "OK: ${LABEL:-Paper} $VER uçtan uca test başarılı."

@@ -51,6 +51,7 @@ public final class Settings {
     private int pregenMaxRadius;
     private int tickBudgetMs;
     private int parallelChunks;
+    private boolean asyncChunks;
 
     private double borderDamage;
     private double borderBuffer;
@@ -124,6 +125,7 @@ public final class Settings {
         pregenMaxRadius = clamp(c.getInt("on-yukleme.maks-yaricap", 512), 0, 10000);
         tickBudgetMs = clamp(c.getInt("on-yukleme.tick-butcesi-ms", 15), 1, 45);
         parallelChunks = clamp(c.getInt("on-yukleme.paralel-chunk", 16), 1, 128);
+        asyncChunks = c.getBoolean("on-yukleme.asenkron", true);
 
         borderDamage = Math.max(0.0, c.getDouble("sinir.hasar", 1.0));
         borderBuffer = Math.max(0.0, c.getDouble("sinir.hasar-tamponu", 0.0));
@@ -291,6 +293,11 @@ public final class Settings {
 
     public int parallelChunks() {
         return parallelChunks;
+    }
+
+    /** Paper'ın asenkron chunk API'si kullanılsın mı (config + sunucu desteği). */
+    public boolean useAsyncChunks() {
+        return asyncChunks && com.dunyalar.util.Compat.hasAsyncChunks();
     }
 
     public double borderDamage() {

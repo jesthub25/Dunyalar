@@ -62,7 +62,7 @@ public final class Dunyalar extends JavaPlugin {
         int loaded = worlds.loadAll();
         getLogger().info("Dunyalar v" + getDescription().getVersion() + " aktif. Yönetilen dünya: "
                 + registry.size() + " (yüklü: " + loaded + ")"
-                + (Compat.hasAsyncChunks() ? " [Paper asenkron chunk desteği aktif]" : ""));
+                + (settings.useAsyncChunks() ? " [asenkron arazi üretimi]" : " [senkron, TPS bütçeli arazi üretimi]"));
     }
 
     @Override

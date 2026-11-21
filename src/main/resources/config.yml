@@ -41,6 +41,8 @@ on-yukleme:
   maks-yaricap: 512
   # Spigot: her tick'te ön yüklemeye ayrılacak en fazla süre (milisaniye). Düşük = TPS dostu.
   tick-butcesi-ms: 15
+  # Paper: arazi asenkron (ana thread dışında) üretilsin mi? Spigot'ta her zaman TPS bütçeli senkron çalışır.
+  asenkron: true
   # Paper: aynı anda asenkron üretilecek chunk sayısı
   paralel-chunk: 16
 

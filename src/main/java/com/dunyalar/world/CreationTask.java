@@ -120,7 +120,7 @@ final class CreationTask implements Runnable {
         send(step(2, s().rawText("adim-arazi", "toplam", String.valueOf(chunkX.length))));
         pregenStartNanos = System.nanoTime();
         lastReport = pregenStartNanos;
-        asyncMode = Compat.hasAsyncChunks();
+        asyncMode = s().useAsyncChunks();
         timer = Bukkit.getScheduler().runTaskTimer(plugin, this, 1L, 1L);
     }
 
@@ -256,7 +256,7 @@ final class CreationTask implements Runnable {
     private void beginFinalize() {
         send(step(3, s().rawText("adim-ayar")));
         List<int[]> chunks = manager.setupChunks(data);
-        if (!Compat.hasAsyncChunks() || chunks.isEmpty()) {
+        if (!s().useAsyncChunks() || chunks.isEmpty()) {
             queueFinalize(1L);
             return;
         }
