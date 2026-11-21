@@ -13,6 +13,6 @@ Spigot / Paper **1.16.5 – 1.21.x** uyumlu çoklu dünya eklentisi.
 - Flat/void End'de ejderha savaşı yok (ayarlanabilir)
 - Her şey `config.yml` üzerinden, `/dünya reload` ile canlı uygulanır
 
-Her sürüm gerçek Paper sunucularında (1.16.5, 1.17.1, 1.18.2, 1.19.4, 1.20.4, 1.20.6, 1.21.4, en güncel 1.21) bot oyuncuyla uçtan uca test edilmiştir.
+Gerçek sunucularda bot oyuncuyla uçtan uca test edildi: Paper 1.16.5, 1.17.1, 1.18.2, 1.19.4, 1.20.4, 1.20.6, 1.21.4, 1.21.11 ve Spigot 1.16.5, 1.21.4, 1.21.11 — sıfır hata, sıfır uyarı, sıfır TPS donması.
 
 **Kurulum:** `Dunyalar-1.0.0.jar` dosyasını `plugins/` klasörüne at.

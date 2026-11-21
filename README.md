@@ -3,7 +3,8 @@
 Gelişmiş çoklu dünya oluşturma ve yönetim eklentisi. Multiverse-Core benzeri; her dünya sunucu ana klasörüne kalıcı olarak kaydedilir.
 
 **Uyumluluk:** Spigot / Paper **1.16.5 – 1.21.x** (Java 8 bytecode; Java 8–21 sunucularda çalışır).
-Her sürüm, gerçek Paper sunucularında ve gerçek bir oyuncu botuyla CI'da test edilir (1.16.5, 1.17.1, 1.18.2, 1.19.4, 1.20.4, 1.20.6, 1.21.4 ve en güncel 1.21).
+Her sürüm CI'da gerçek sunucularda ve gerçek bir oyuncu botuyla uçtan uca test edilir:
+Paper 1.16.5, 1.17.1, 1.18.2, 1.19.4, 1.20.4, 1.20.6, 1.21.4, 1.21.11 (asenkron + senkron ön yükleme) ve Spigot 1.16.5, 1.21.4, 1.21.11.
 
 ## Kurulum
 
@@ -43,6 +44,7 @@ Her sürüm, gerçek Paper sunucularında ve gerçek bir oyuncu botuyla CI'da te
   - `flat`: 1 bedrock + 4 tema katmanı (world: toprak/çimen, nether: netherrack, end: end taşı) — config'den değiştirilebilir.
 - **Boyut:** `XxZ`. Varsayılan `yaricap` modunda `1000x1000` merkezden her yöne 1000 blok demektir; `toplam` modunda toplam alandır (`olusturma.boyut-modu`).
 - **Sınır:** Vanilla mavi dünya sınırı + dikdörtgen dünyalarda kısa kenarı koruyan hareket kontrolü. Ender incisi, koro meyvesi, elytra, araç ve `/tp` ile sınır dışına çıkılamaz.
+- **Performans:** Vanilla'nın dünya açılışında yaptığı senkron spawn bölgesi üretimi eklenti dünyalarında atlanır; arazi TPS dostu ön yüklemeyle üretilir (`on-yukleme`).
 - **Oluşturma ilerlemesi:** Chat'te adımlar ve `[||||||||||] %45 | 120/260 chunk | Kalan ~12 sn` biçiminde ilerleme. Arazi merkezden dışa doğru önceden üretilir (Spigot'ta TPS bütçeli, Paper'da asenkron).
 - **Kalıcılık:** Dünyalar `plugins/Dunyalar/worlds.yml`'ye atomik yazılır, sunucu açılışında otomatik yüklenir. `worlds.yml` elle düzenlenip `/dünya reload` ile uygulanabilir.
 - **Yeniden doğma:** Eklentinin bir dünyasında ölen oyuncu o dünyanın spawn noktasında doğar (yatak önceliği ayarlanabilir).
