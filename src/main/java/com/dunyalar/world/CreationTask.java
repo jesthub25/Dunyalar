@@ -11,18 +11,20 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
 /**
  * Dünya oluşturma görevi:
- *  1/3 Dünya dosyalarını oluştur (ana thread, tek tick)
- *  2/3 Sınır, spawn, platform ve ayarlar
- *  3/3 Arazinin merkezden dışa doğru önceden üretilmesi (TPS bütçeli; Paper'da asenkron)
+ *  1/3 Dünya dosyalarını oluştur (ana thread, tek tick) ve sınırı uygula
+ *  2/3 Arazinin merkezden dışa doğru önceden üretilmesi (TPS bütçeli; Paper'da asenkron)
+ *  3/3 Platform, ejderha işareti ve güvenli spawn (gerekli chunk'lar önce yüklenip sabitlenir)
  * İlerleme, ayarlanan aralıklarla komutu kullanan kişiye chat'ten bildirilir.
  */
 final class CreationTask implements Runnable {
@@ -51,6 +53,8 @@ final class CreationTask implements Runnable {
     private int next;
     private boolean asyncMode;
     private boolean finished;
+    private int finalizeAttempts;
+    private final AtomicBoolean finalizeQueued = new AtomicBoolean();
 
     CreationTask(Dunyalar plugin, WorldManager manager, WorldData data, UUID playerId, String sizeText) {
         this.plugin = plugin;
@@ -99,22 +103,21 @@ final class CreationTask implements Runnable {
             return;
         }
 
-        send(step(2, s().rawText("adim-ayar")));
         try {
-            manager.setupNewWorld(world, data);
+            // spawn-bellekte-tut ayarı kurulum sonuna ertelenir (bkz. WorldManager#applySettings)
+            manager.applySettings(world, data, false);
         } catch (Throwable t) {
-            // Dünya kullanılabilir; kurulumdaki hata loglanır, işlem devam eder
-            plugin.getLogger().log(Level.WARNING, "Dünya kurulumunda hata: " + data.name(), t);
+            plugin.getLogger().log(Level.WARNING, "Dünya ayarları uygulanamadı: " + data.name(), t);
         }
         plugin.registry().put(data);
         plugin.registry().save();
 
         preparePregen();
         if (chunkX.length == 0) {
-            finish();
+            beginFinalize();
             return;
         }
-        send(step(3, s().rawText("adim-arazi", "toplam", String.valueOf(chunkX.length))));
+        send(step(2, s().rawText("adim-arazi", "toplam", String.valueOf(chunkX.length))));
         pregenStartNanos = System.nanoTime();
         lastReport = pregenStartNanos;
         asyncMode = Compat.hasAsyncChunks();
@@ -213,7 +216,12 @@ final class CreationTask implements Runnable {
             report(now);
         }
         if (done.get() >= total && inflight.get() <= 0 && retry.isEmpty()) {
-            finish();
+            if (timer != null) {
+                timer.cancel();
+                timer = null;
+            }
+            report(System.nanoTime());
+            beginFinalize();
         }
     }
 
@@ -244,14 +252,97 @@ final class CreationTask implements Runnable {
                 "yapilan", String.valueOf(d), "toplam", String.valueOf(total), "kalan", eta, "dunya", data.name()));
     }
 
-    private void finish() {
+    /** 3. adım: kurulumun dokunacağı chunk'ları (Paper'da asenkron) hazırla, sonra kurulumu yap. */
+    private void beginFinalize() {
+        send(step(3, s().rawText("adim-ayar")));
+        List<int[]> chunks = manager.setupChunks(data);
+        if (!Compat.hasAsyncChunks() || chunks.isEmpty()) {
+            queueFinalize(1L);
+            return;
+        }
+        final AtomicInteger left = new AtomicInteger(chunks.size());
+        for (int[] c : chunks) {
+            CompletableFuture<?> f = Compat.loadChunkAsync(world, c[0], c[1]);
+            if (f == null) {
+                if (left.decrementAndGet() == 0) {
+                    queueFinalize(1L);
+                }
+                continue;
+            }
+            f.whenComplete(new BiConsumer<Object, Throwable>() {
+                @Override
+                public void accept(Object chunk, Throwable error) {
+                    if (left.decrementAndGet() == 0) {
+                        queueFinalize(1L);
+                    }
+                }
+            });
+        }
+        // Güvenlik ağı: asenkron yükleme takılırsa 30 sn sonra yine de devam et
+        safeLater(new Runnable() {
+            @Override
+            public void run() {
+                queueFinalize(0L);
+            }
+        }, 600L);
+    }
+
+    private void queueFinalize(long delay) {
+        if (!finalizeQueued.compareAndSet(false, true)) {
+            return;
+        }
+        safeLater(new Runnable() {
+            @Override
+            public void run() {
+                finalizeStep();
+            }
+        }, Math.max(1L, delay));
+    }
+
+    private void finalizeStep() {
+        if (finished) {
+            return;
+        }
+        World current = Bukkit.getWorld(data.name());
+        if (current == null || !current.getUID().equals(world.getUID())) {
+            send(s().msg("olusturma-iptal", "dunya", data.name()));
+            end();
+            return;
+        }
+        try {
+            manager.finalizeNewWorld(world, data);
+        } catch (Throwable t) {
+            if (++finalizeAttempts < 10) {
+                // Chunk sistemi meşgul olabilir: kısa süre sonra tekrar dene
+                safeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        finalizeStep();
+                    }
+                }, 10L);
+                return;
+            }
+            plugin.getLogger().log(Level.WARNING, "Dünya kurulumu tamamlanamadı: " + data.name(), t);
+        }
+        complete();
+    }
+
+    private void safeLater(Runnable r, long delay) {
+        if (!plugin.isEnabled()) {
+            return;
+        }
+        try {
+            Bukkit.getScheduler().runTaskLater(plugin, r, delay);
+        } catch (Throwable ignored) {
+            // eklenti kapanıyor
+        }
+    }
+
+    private void complete() {
         if (finished) {
             return;
         }
         double secs = (System.nanoTime() - startNanos) / 1_000_000_000.0;
-        if (chunkX.length > 0) {
-            report(System.nanoTime());
-        }
         end();
         send(s().msg("olusturma-tamamlandi", "dunya", data.name(), "sure", Text.oneDecimal(secs),
                 "alan", data.areaText(), "tema", data.theme().key(), "tip", data.kind().key()));

@@ -83,6 +83,11 @@ cat > bukkit.yml <<EOF
 settings:
   allow-end: false
 EOF
+# Eklenti config'i önceden yazılır (özel config'in okunduğunu da doğrular). Test sırasında
+# End'de Enderman'ların bota saldırmaması için barışçıl zorluk.
+mkdir -p plugins/Dunyalar
+sed 's/^  zorluk: NORMAL/  zorluk: PEACEFUL/' "$CI_DIR/../src/main/resources/config.yml" > plugins/Dunyalar/config.yml
+grep -q "zorluk: PEACEFUL" plugins/Dunyalar/config.yml || fail "Test config'i hazırlanamadı"
 python3 - > ops.json <<'PY'
 import hashlib, json, uuid
 name = "DunyaBot"

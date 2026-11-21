@@ -202,8 +202,17 @@ public final class WorldManager {
 
     // =================================================================== ayarlar
 
-    /** Sınır ve dünya ayarlarını uygular (oluşturma, açılış ve reload'da). */
+    /** Sınır ve dünya ayarlarını uygular (açılış ve reload'da). */
     public void applySettings(World w, WorldData d) {
+        applySettings(w, d, true);
+    }
+
+    /**
+     * @param keepSpawnSetting false ise spawn-bellekte-tut ayarı uygulanmaz. Yeni oluşturulan dünyada bu
+     *                         ayar kurulum bitene kadar ertelenir; aksi halde spawn chunk'ları boşaltılırken
+     *                         aynı tick'te yapılan chunk erişimleri (Paper 1.17/1.18) başarısız olur.
+     */
+    void applySettings(World w, WorldData d, boolean keepSpawnSetting) {
         Settings s = s();
         WorldBorder b = w.getWorldBorder();
         b.setCenter(0.0, 0.0);
@@ -216,7 +225,9 @@ public final class WorldManager {
         w.setPVP(s.pvp());
         w.setDifficulty(s.difficulty());
         w.setSpawnFlags(s.monsters(), s.animals());
-        Compat.setKeepSpawnInMemory(w, s.keepSpawn());
+        if (keepSpawnSetting) {
+            Compat.setKeepSpawnInMemory(w, s.keepSpawn());
+        }
 
         Location sp = d.spawnLocation(w);
         if (sp != null) {
@@ -224,19 +235,55 @@ public final class WorldManager {
         }
     }
 
-    /** Yeni oluşturulan dünyaya tek seferlik kurulum. */
-    void setupNewWorld(World w, WorldData d) {
-        applySettings(w, d);
-        if (d.kind() == WorldKind.VOID && s().voidPlatform()) {
-            buildPlatform(w, 0, d.platformY(), 0, s().voidPlatformRadius(), s().voidPlatformBlock());
+    /** Kurulumun dokunacağı chunk'lar (platform, ejderha işareti, güvenli merkez araması). x,z çiftleri. */
+    List<int[]> setupChunks(WorldData d) {
+        List<int[]> out = new ArrayList<int[]>();
+        int cx = centerX(d);
+        int reach = Math.max(s().safeSearchRadius(), d.kind() == WorldKind.VOID ? s().voidPlatformRadius() : 0) + 1;
+        for (int x = Math.floorDiv(cx - reach, 16); x <= Math.floorDiv(cx + reach, 16); x++) {
+            for (int z = Math.floorDiv(-reach, 16); z <= Math.floorDiv(reach, 16); z++) {
+                out.add(new int[]{x, z});
+            }
         }
         if (d.theme() == WorldTheme.END && !d.dragon()) {
-            placeDragonMarker(w);
+            out.add(new int[]{DRAGON_MARK_X >> 4, DRAGON_MARK_Z >> 4});
         }
-        Location center = safeCenter(w, d);
-        if (center != null) {
-            w.setSpawnLocation(center.getBlockX(), center.getBlockY(), center.getBlockZ());
+        return out;
+    }
+
+    /**
+     * Yeni dünyaya tek seferlik kurulum (ön yüklemeden sonra çağrılır). Gerekli chunk'lar eklenti
+     * bileti ile sabitlenir; böylece kurulum sırasında boşaltılamazlar.
+     */
+    void finalizeNewWorld(World w, WorldData d) {
+        List<int[]> chunks = setupChunks(d);
+        List<int[]> held = new ArrayList<int[]>();
+        try {
+            for (int[] c : chunks) {
+                w.addPluginChunkTicket(c[0], c[1], plugin);
+                held.add(c);
+                w.loadChunk(c[0], c[1], true);
+            }
+            if (d.kind() == WorldKind.VOID && s().voidPlatform()) {
+                buildPlatform(w, 0, d.platformY(), 0, s().voidPlatformRadius(), s().voidPlatformBlock());
+            }
+            if (d.theme() == WorldTheme.END && !d.dragon()) {
+                placeDragonMarker(w);
+            }
+            Location center = safeCenter(w, d);
+            if (center != null && d.spawn() == null) {
+                w.setSpawnLocation(center.getBlockX(), center.getBlockY(), center.getBlockZ());
+            }
+        } finally {
+            for (int[] c : held) {
+                try {
+                    w.removePluginChunkTicket(c[0], c[1], plugin);
+                } catch (Throwable ignored) {
+                    // dünya kaldırılmış olabilir
+                }
+            }
         }
+        Compat.setKeepSpawnInMemory(w, s().keepSpawn());
     }
 
     /**
@@ -273,11 +320,15 @@ public final class WorldManager {
 
     /** Dünyanın merkezindeki (veya yakınındaki) güvenli konum. */
     public Location safeCenter(World w, WorldData d) {
-        int cx = 0;
+        return safeAt(w, d, centerX(d), 0);
+    }
+
+    /** Ejderha savaşı olan End dünyalarında çıkış portalının üstüne düşmemek için merkez kaydırılır. */
+    private int centerX(WorldData d) {
         if (d.theme() == WorldTheme.END && d.dragon()) {
-            cx = Math.min(s().endCenterOffset(), Math.max(0, d.radiusX() - 2));
+            return Math.min(s().endCenterOffset(), Math.max(0, d.radiusX() - 2));
         }
-        return safeAt(w, d, cx, 0);
+        return 0;
     }
 
     public Location safeAt(World w, WorldData d, int x, int z) {
