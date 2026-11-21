@@ -11,6 +11,7 @@ import com.dunyalar.generators.VoidGenerator;
 import com.dunyalar.listeners.BorderListener;
 import com.dunyalar.listeners.DragonListener;
 import com.dunyalar.listeners.RespawnListener;
+import com.dunyalar.listeners.WorldInitListener;
 import com.dunyalar.util.Compat;
 import com.dunyalar.util.Text;
 import com.dunyalar.world.WorldManager;
@@ -58,6 +59,7 @@ public final class Dunyalar extends JavaPlugin {
         pm.registerEvents(new BorderListener(this), this);
         pm.registerEvents(new RespawnListener(this), this);
         pm.registerEvents(new DragonListener(this), this);
+        pm.registerEvents(new WorldInitListener(this), this);
 
         int loaded = worlds.loadAll();
         getLogger().info("Dunyalar v" + getDescription().getVersion() + " aktif. Yönetilen dünya: "
