@@ -1,0 +1,211 @@
+# ==============================================================
+#  Dunyalar - Ana Ayar Dosyası
+#  Değişiklikleri oyuna uygulamak için:  /dünya reload
+#  Renk kodları: &a, &b ...   HEX renk (1.16+): &#00FFAA
+# ==============================================================
+
+prefix: "&8[&bDünyalar&8] &r"
+
+# ------------------------------------------------------------
+#  Dünya oluşturma
+# ------------------------------------------------------------
+olusturma:
+  # Komuttaki boyut (örn. 1000x1000) nasıl yorumlansın?
+  #   yaricap -> merkezden X yönünde 1000, Z yönünde 1000 blok (alan: 2000x2000)
+  #   toplam  -> toplam alan 1000x1000 blok (merkezden 500'er blok)
+  boyut-modu: yaricap
+  # Komutta yazılabilecek en küçük / en büyük sayı
+  min-boyut: 5
+  maks-boyut: 50000
+  # Dünya adı kuralı (klasör adı olarak kullanılır). Desen ne olursa olsun klasör güvenliği için
+  # yalnızca A-Z a-z 0-9 _ - karakterleri kabul edilir; bu desen ek kısıt koymak içindir.
+  isim-deseni: "^[A-Za-z0-9_-]{1,32}$"
+  # Boş bırakılırsa rastgele tohum (seed) kullanılır
+  tohum: ""
+  # Normal tipteki dünyalarda köy, kale vb. yapılar oluşsun mu?
+  yapilar: true
+  # Chat'e ilerleme mesajı kaç saniyede bir gönderilsin?
+  ilerleme-araligi: 2
+  # İlerleme çubuğunun uzunluğu (karakter)
+  ilerleme-cubugu-uzunlugu: 20
+  # Dünya hazır olduğunda oynatılacak ses (boş = kapalı)
+  tamamlandi-sesi: "minecraft:ui.toast.challenge_complete"
+
+# ------------------------------------------------------------
+#  Ön yükleme (oluşturma sırasında arazinin önceden üretilmesi)
+#  Oyuncular dünyaya girdiğinde lag olmaması için yapılır.
+# ------------------------------------------------------------
+on-yukleme:
+  aktif: true
+  # Merkezden en fazla kaç bloğa kadar önceden üretilsin? (Çok büyük dünyalarda sunucuyu yormamak için)
+  maks-yaricap: 512
+  # Spigot: her tick'te ön yüklemeye ayrılacak en fazla süre (milisaniye). Düşük = TPS dostu.
+  tick-butcesi-ms: 15
+  # Paper: aynı anda asenkron üretilecek chunk sayısı
+  paralel-chunk: 16
+
+# ------------------------------------------------------------
+#  Sınır (mavi dünya sınırı)
+# ------------------------------------------------------------
+sinir:
+  # Sınır dışında kalan oyuncuya saniyede verilecek hasar (blok başına)
+  hasar: 1.0
+  hasar-tamponu: 0.0
+  # Sınıra kaç blok kala ekran kızarsın
+  uyari-mesafesi: 5
+  uyari-suresi: 10
+  # Sınıra çarpınca aksiyon bar mesajı gösterilsin mi?
+  aksiyon-bar-mesaji: true
+  # Sınır dışına ender incisi / koro meyvesi ile geçişi engelle
+  firlatma-engelle: true
+
+# ------------------------------------------------------------
+#  Void dünyalar
+#  Not: Void dünyalarda eklenti hiçbir yükseklik kısıtı koymaz; sınır tüm yüksekliği kaplar.
+# ------------------------------------------------------------
+void:
+  platform:
+    # Merkezde oyuncuların düşmemesi için küçük bir platform
+    aktif: true
+    blok: BEDROCK
+    # 1 => 3x3, 2 => 5x5
+    yaricap: 1
+    y: 64
+
+# ------------------------------------------------------------
+#  Flat dünyalar - katmanlar alttan üste (ilk satır en alt kat)
+# ------------------------------------------------------------
+flat:
+  katmanlar:
+    world:
+      - BEDROCK
+      - DIRT
+      - DIRT
+      - DIRT
+      - GRASS_BLOCK
+    nether:
+      - BEDROCK
+      - NETHERRACK
+      - NETHERRACK
+      - NETHERRACK
+      - NETHERRACK
+    end:
+      - BEDROCK
+      - END_STONE
+      - END_STONE
+      - END_STONE
+      - END_STONE
+
+# ------------------------------------------------------------
+#  Void ve flat dünyalarda kullanılacak biyom
+#  (Gökyüzü, sis, ortam sesleri ve müzik biyoma göre gelir)
+# ------------------------------------------------------------
+biyomlar:
+  world: plains
+  nether: nether_wastes
+  end: the_end
+
+# ------------------------------------------------------------
+#  End dünyaları
+# ------------------------------------------------------------
+end:
+  # Ejderha savaşı hangi tiplerde olsun?
+  ejderha:
+    normal: true
+    flat: false
+    void: false
+  # Ejderha savaşı olan End dünyalarında merkeze ışınlanırken çıkış portalının
+  # üstüne düşmemek için merkezden kaç blok yana ışınlansın
+  merkez-ofset: 12
+
+# ------------------------------------------------------------
+#  Oluşturulan dünyalara uygulanan ayarlar (reload ile güncellenir)
+# ------------------------------------------------------------
+dunya-ayarlari:
+  pvp: true
+  # PEACEFUL, EASY, NORMAL, HARD
+  zorluk: NORMAL
+  canavar-spawn: true
+  hayvan-spawn: true
+  # Spawn chunk'ları sürekli bellekte tutulsun mu? (false = daha az RAM/TPS kullanımı)
+  spawn-bellekte-tut: false
+
+# ------------------------------------------------------------
+#  Işınlanma
+# ------------------------------------------------------------
+isinlanma:
+  baslik: true
+  ses: "minecraft:entity.enderman.teleport"
+  # Merkezde güvenli yer bulunamazsa etrafta kaç blok aransın
+  guvenli-arama-yaricapi: 8
+  # Hiç güvenli yer yoksa ayağının altına küçük bir platform koy
+  zemin-yoksa-platform: true
+  platform-blok: COBBLESTONE
+
+# ------------------------------------------------------------
+#  Ölünce yeniden doğma
+# ------------------------------------------------------------
+yeniden-dogma:
+  # Eklentinin dünyalarında ölen oyuncu o dünyanın spawn noktasında doğar
+  aktif: true
+  # true: oyuncunun yatağı / respawn anchor'ı varsa önce oraya doğsun
+  yatak-oncelikli: false
+
+# ------------------------------------------------------------
+#  Mesajlar
+# ------------------------------------------------------------
+mesajlar:
+  yetki-yok: "&cBu komutu kullanmak için yetkin yok."
+  sadece-oyuncu: "&cBu komutu sadece oyuncular kullanabilir."
+  kullanim: "&cKullanım: &e{kullanim}"
+  bilinmeyen-alt-komut: "&cBilinmeyen alt komut. &7Yardım için: &e/dünya"
+  komut-hatasi: "&cKomut çalıştırılırken beklenmeyen bir hata oluştu. Ayrıntılar konsolda."
+  gecersiz-isim: "&cGeçersiz dünya adı: &e{dunya}&c. Sadece harf, rakam, _ ve - kullanılabilir (en fazla 32 karakter)."
+  isim-kullanimda: "&cBu isimde bir dünya veya klasör zaten var: &e{dunya}"
+  gecersiz-tema: "&cGeçersiz tema: &e{deger}&c. Kullanılabilir: &eworld&c, &enether&c, &eend"
+  gecersiz-tip: "&cGeçersiz tip: &e{deger}&c. Kullanılabilir: &enormal&c, &evoid&c, &eflat"
+  gecersiz-boyut: "&cGeçersiz boyut: &e{deger}&c. Örnek: &e100x100"
+  boyut-kucuk: "&cBoyut en az &e{min}x{min}&c olmalı."
+  boyut-buyuk: "&cBoyut en fazla &e{max}x{max}&c olabilir."
+  islem-suruyor: "&cŞu anda &e{dunya}&c dünyası oluşturuluyor. Lütfen bitmesini bekle."
+  olusturma-basladi: "&aDünya oluşturma başladı: &b{dunya} &8| &7Tema: &e{tema} &8| &7Tip: &e{tip} &8| &7Boyut: &e{boyut}"
+  olusturma-adim: "&8[&e{adim}&8/&e{toplam}&8] &7{aciklama}"
+  adim-dosya: "Dünya dosyaları oluşturuluyor..."
+  adim-ayar: "Sınırlar, spawn ve dünya ayarları uygulanıyor..."
+  adim-arazi: "Arazi önceden üretiliyor (&e{toplam}&7 chunk)..."
+  olusturma-ilerleme: "&8[{bar}&8] &e%{yuzde} &8| &7{yapilan}/{toplam} chunk &8| &7Kalan: &e~{kalan} sn"
+  olusturma-tamamlandi: "&aDünya hazır: &b{dunya} &7({sure} sn) &8| &7Alan: &e{alan} &8| &7Işınlanmak için: &e/dünya ışınlan {dunya}"
+  olusturma-hata: "&cDünya oluşturulamadı: &e{dunya}&c. Ayrıntılar konsolda."
+  olusturma-iptal: "&cDünya hazırlığı yarıda kaldı: &e{dunya}&c (dünya kaldırıldı)."
+  dunya-bulunamadi: "&cDünya bulunamadı: &e{dunya}"
+  dunya-yuklu-degil: "&cDünya yüklü değil (klasörü eksik olabilir): &e{dunya}"
+  dunya-hazirlaniyor: "&cDünya hâlâ hazırlanıyor: &e{dunya}&c. Biraz bekle."
+  sil-oyuncu-var: "&cSilme iptal edildi! &e{dunya}&c dünyasında &e{sayi}&c oyuncu var. Dünya boş olmalı."
+  sil-basladi: "&eDünya siliniyor: &b{dunya}&e..."
+  sil-tamamlandi: "&aDünya kalıcı olarak silindi: &b{dunya}"
+  sil-hata: "&cDünya kaldırılamadı: &e{dunya}&c. Ayrıntılar konsolda."
+  sil-klasor-kaldi: "&eDünya sistemden silindi ama klasörün bir kısmı silinemedi: &7{yol}"
+  sil-ana-dunya: "&cSunucunun ana dünyası silinemez."
+  spawn-ayarlandi: "&aSpawn noktası ayarlandı: &b{dunya} &8| &7{x}, {y}, {z}"
+  spawn-yanlis-dunya: "&cSpawn noktasını sadece o dünyanın içindeyken ayarlayabilirsin! &7(Şu an: &e{aktif}&7, hedef: &e{dunya}&7)"
+  spawn-sinir-disi: "&cBulunduğun konum dünya sınırının dışında."
+  isinlandi: "&aIşınlandın: &b{dunya}"
+  isinlanma-basarisiz: "&cIşınlanma başarısız oldu: &e{dunya}"
+  baslik: "&b{dunya}"
+  alt-baslik: "&7{tema} &8• &7{tip}"
+  sinir-uyari: "&cDünya sınırına ulaştın!"
+  reload-tamam: "&aAyarlar yeniden yüklendi. &7Yönetilen dünya: &e{sayi}"
+  reload-mesgul: "&cDünya oluşturma sürerken reload yapılamaz."
+  liste-baslik: "&bDünyalar &7({sayi}):"
+  liste-satir: " &8- &b{dunya} &8| &7{tema}/{tip} &8| &7Alan: &e{alan} &8| &7Oyuncu: &e{oyuncu} &8| {durum}"
+  liste-bos: "&7Henüz oluşturulmuş dünya yok."
+  durum-yuklu: "&aYüklü"
+  durum-yuklenmedi: "&cYüklenmedi"
+  durum-hazirlaniyor: "&eHazırlanıyor"
+  yardim-baslik: "&8&m---------&r &bDünyalar &8&m---------"
+  yardim-olustur: "&e/dünya oluştur &7<isim> <world|nether|end> <normal|void|flat> <XxZ>"
+  yardim-sil: "&e/dünya sil &7<dünya> &8- &7Dünyayı kalıcı siler (dünya boş olmalı)"
+  yardim-setspawn: "&e/dünya setspawn &7<dünya> &8- &7Bulunduğun yeri spawn yapar"
+  yardim-isinlan: "&e/dünya ışınlan &7<dünya> &8- &7Dünyanın spawn'ına / merkezine ışınlar"
+  yardim-liste: "&e/dünya liste &8- &7Dünyaları listeler"
+  yardim-reload: "&e/dünya reload &8- &7Ayarları oyuna uygular"

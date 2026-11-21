@@ -1,0 +1,48 @@
+name: Dunyalar
+version: '${project.version}'
+main: com.dunyalar.Dunyalar
+api-version: '1.16'
+load: POSTWORLD
+author: Jestron
+description: Gelişmiş çoklu dünya oluşturma ve yönetim eklentisi (1.16.5 - 1.21.x)
+
+commands:
+  dünya:
+    description: Dünya oluşturma ve yönetim komutu
+    usage: /<command> [oluştur|sil|setspawn|ışınlan|liste|reload]
+    aliases: [dunya, dunyalar]
+    permission: dunyalar.use
+
+permissions:
+  dunyalar.*:
+    description: Tüm Dunyalar yetkileri
+    default: op
+    children:
+      dunyalar.use: true
+      dunyalar.olustur: true
+      dunyalar.sil: true
+      dunyalar.setspawn: true
+      dunyalar.isinlan: true
+      dunyalar.liste: true
+      dunyalar.reload: true
+  dunyalar.use:
+    description: /dünya komutunu görme ve kullanma (alt komutlar için ayrıca yetki gerekir)
+    default: op
+  dunyalar.olustur:
+    description: /dünya oluştur
+    default: op
+  dunyalar.sil:
+    description: /dünya sil
+    default: op
+  dunyalar.setspawn:
+    description: /dünya setspawn
+    default: op
+  dunyalar.isinlan:
+    description: /dünya ışınlan
+    default: op
+  dunyalar.liste:
+    description: /dünya liste
+    default: op
+  dunyalar.reload:
+    description: /dünya reload
+    default: op

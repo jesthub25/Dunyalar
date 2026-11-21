@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.dunyalar</groupId>
+    <artifactId>Dunyalar</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Dunyalar</name>
+    <description>Gelişmiş çoklu dünya oluşturma/yönetim eklentisi (1.16.5 - 1.21.x)</description>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- Java 8 bytecode: 1.16.5 (Java 8/11/16) ile 1.21 (Java 21) arasında çalışır -->
+        <java.release>8</java.release>
+        <!-- Derlenen API (varsayılan: Spigot 1.16.5). Profiller sadece uyumluluk kontrolü içindir. -->
+        <api.groupId>org.spigotmc</api.groupId>
+        <api.artifactId>spigot-api</api.artifactId>
+        <api.version>1.16.5-R0.1-SNAPSHOT</api.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>spigot-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>sonatype</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>${api.groupId}</groupId>
+            <artifactId>${api.artifactId}</artifactId>
+            <version>${api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <!-- mvn -P spigot-1.21 compile : en güncel Spigot API'sine karşı derleme kontrolü -->
+        <profile>
+            <id>spigot-1.21</id>
+            <properties>
+                <java.release>21</java.release>
+                <api.version>1.21.4-R0.1-SNAPSHOT</api.version>
+            </properties>
+        </profile>
+        <!-- mvn -P paper-1.21 compile : Paper API'sine karşı derleme kontrolü -->
+        <profile>
+            <id>paper-1.21</id>
+            <properties>
+                <java.release>21</java.release>
+                <api.groupId>io.papermc.paper</api.groupId>
+                <api.artifactId>paper-api</api.artifactId>
+                <api.version>1.21.4-R0.1-SNAPSHOT</api.version>
+            </properties>
+            <repositories>
+                <repository>
+                    <id>papermc</id>
+                    <url>https://repo.papermc.io/repository/maven-public/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+        <finalName>${project.artifactId}-${project.version}</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${java.release}</release>
+                    <encoding>UTF-8</encoding>
+                    <showWarnings>true</showWarnings>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-deprecation,-removal,-options,-processing,-classfile</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <propertiesEncoding>UTF-8</propertiesEncoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
